@@ -1,5 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import Trash from "../icons/Trash";
+import { setZIndex } from '../utils';
+import PropTypes from 'prop-types'; // Import PropTypes
 
 const NoteCard = ({ note }) => {
   const body = JSON.parse(note.body); // Parsed content of the note body
@@ -8,21 +10,26 @@ const NoteCard = ({ note }) => {
   const textAreaRef = useRef(null);
   const cardRef = useRef(null);
   const [position, setPosition] = useState(JSON.parse(note.position));
+  const [bodyContent, setBodyContent] = useState(body.content); // State for the content
 
   useEffect(() => {
     autoGrow(textAreaRef);
-  }, []);
+  }, [bodyContent]);
 
   const autoGrow = (textAreaRef) => {
     const { current } = textAreaRef;
     if (current) {
       current.style.height = "auto";
-      current.style.height = `${current.scrollHeight}px`;
+      current.style.height = textAreaRef.current.scrollHeight + "px";
     }
   };
 
   const mouseDown = (e) => {
-    mouseStartPos = { x: e.clientX, y: e.clientY };
+    setZIndex(cardRef.current);
+
+    mouseStartPos.x = e.clientX;
+    mouseStartPos.y = e.clientY;
+ 
     document.addEventListener("mousemove", mouseMove);
     document.addEventListener("mouseup", mouseUp);
   };
@@ -38,12 +45,21 @@ const NoteCard = ({ note }) => {
       y: mouseStartPos.y - e.clientY,
     };
 
-    mouseStartPos = { x: e.clientX, y: e.clientY };
+    mouseStartPos.x = e.clientX;
+    mouseStartPos.y = e.clientY;
 
-    setPosition((prevPosition) => ({
-      x: prevPosition.x - mouseMoveDir.x,
-      y: prevPosition.y - mouseMoveDir.y,
-    }));
+    setPosition({
+      x: cardRef.current.offsetLeft - mouseMoveDir.x,
+      y: cardRef.current.offsetTop - mouseMoveDir.y,
+    });
+  };
+
+  const handleDelete = () => {
+    setBodyContent(''); // Clear the body content
+  };
+
+  const handleInputChange = (e) => {
+    setBodyContent(e.target.value); // Update body content as user types
   };
 
   return (
@@ -64,18 +80,54 @@ const NoteCard = ({ note }) => {
         onMouseDown={mouseDown}
       >
         {body.title && <h3>{body.title}</h3>}
-        <Trash />
+        <button onClick={handleDelete} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+          <Trash /> {/* Trash icon as a button */}
+        </button>
       </div>
       <div className="card-body">
         <textarea
+          onFocus={() => setZIndex(cardRef.current)}
           style={{ color: colors.colorText }}
-          defaultValue={body.content} // Assuming `body.content` is where the main text is stored
+          value={bodyContent} // Controlled by state
           ref={textAreaRef}
           onInput={() => autoGrow(textAreaRef)}
+          onChange={handleInputChange} // Sync state with user input
         ></textarea>
+
+        {/* Additional UI buttons */}
+        <span
+          className="inline-flex -space-x-px overflow-hidden rounded-md border bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
+        >
+          <button
+            className="inline-block px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:relative dark:text-gray-200 dark:hover:bg-gray-800"
+          >
+            Edit
+          </button>
+
+          <button
+            className="inline-block px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:relative dark:text-gray-200 dark:hover:bg-gray-800"
+          >
+            View
+          </button>
+
+          <button
+            className="inline-block px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:relative dark:text-gray-200 dark:hover:bg-gray-800"
+          >
+            Delete
+          </button>
+        </span>
       </div>
     </div>
   );
+};
+
+// Prop validation using PropTypes
+NoteCard.propTypes = {
+  note: PropTypes.shape({
+    body: PropTypes.string.isRequired,
+    colors: PropTypes.string.isRequired,
+    position: PropTypes.string.isRequired,
+  }).isRequired,
 };
 
 export default NoteCard;
