@@ -8,7 +8,7 @@ export const fakeData = [
             id: "color-purple",
             colorHeader: "#A7C6DA",
             colorBody: "#829399",
-            colorText: "#A22C29",
+            colorText: "#A22C29",  
         }),
         position: JSON.stringify({ x: 505, y: 10 }),
     }
