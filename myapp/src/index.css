@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -17,14 +21,14 @@ body {
 }
 
 #app {
-  background-color: rgb(26, 27, 26);
+  background-color: rgb(151, 64, 84);
   height: 100vh;
   position: relative;
   overflow: auto;
 }
 
 .card {
-  width: 400px;
+  width: 350px;
   border-radius: 5px;
   cursor: pointer;
   position: absolute;

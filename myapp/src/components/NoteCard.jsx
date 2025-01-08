@@ -6,7 +6,7 @@ import PropTypes from 'prop-types'; // Import PropTypes
 const NoteCard = ({ note }) => {
   const body = JSON.parse(note.body); // Parsed content of the note body
   let mouseStartPos = { x: 0, y: 0 };
-  const colors = JSON.parse(note.colors); // Parsed color settings for the note
+  // Parsed color settings for the note
   const textAreaRef = useRef(null);
   const cardRef = useRef(null);
   const [position, setPosition] = useState(JSON.parse(note.position));
@@ -67,7 +67,7 @@ const NoteCard = ({ note }) => {
       ref={cardRef}
       className="card"
       style={{
-        backgroundColor: colors.colorBody,
+        
         left: `${position.x}px`,
         top: `${position.y}px`,
         position: 'absolute',
@@ -76,7 +76,7 @@ const NoteCard = ({ note }) => {
       {/* Header with optional background color */}
       <div
         className="card-header"
-        style={{ backgroundColor: colors.colorHeader }}
+        
         onMouseDown={mouseDown}
       >
         {body.title && <h3>{body.title}</h3>}
@@ -87,7 +87,7 @@ const NoteCard = ({ note }) => {
       <div className="card-body">
         <textarea
           onFocus={() => setZIndex(cardRef.current)}
-          style={{ color: colors.colorText }}
+          
           value={bodyContent} // Controlled by state
           ref={textAreaRef}
           onInput={() => autoGrow(textAreaRef)}
@@ -105,7 +105,7 @@ const NoteCard = ({ note }) => {
 NoteCard.propTypes = {
   note: PropTypes.shape({
     body: PropTypes.string.isRequired,
-    colors: PropTypes.string.isRequired,
+   
     position: PropTypes.string.isRequired,
   }).isRequired,
 };

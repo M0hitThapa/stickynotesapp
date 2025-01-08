@@ -6,9 +6,9 @@ export const fakeData = [
         ),
         colors: JSON.stringify({
             id: "color-purple",
-            colorHeader: "#0f4228",
-            colorBody: "#000000",
-            colorText: "#ffffff",  
+            colorHeader: "#c0c4b9",
+            colorBody: "#44826c",
+            colorText: "#000000",  
         }),
         position: JSON.stringify({ x: 505, y: 10 }),
     }
