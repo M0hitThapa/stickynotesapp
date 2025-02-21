@@ -1,113 +1,143 @@
-import { useRef, useEffect, useState } from 'react';
-import Trash from "../icons/Trash";
-import { setZIndex } from '../utils';
-import PropTypes from 'prop-types'; // Import PropTypes
+import { useEffect, useRef, useState } from "react";
+import { setNewOffset, autoGrow, setZIndex, bodyParser } from "../utils";
+import { db } from "../appwrite/database";
+import Spinner from "../icons/Spinner";
+import DeleteButton from "../components/DeleteButton";
+import { useContext } from "react";
+import { NotesContext } from "../context/NotesContext";
+import PropTypes from "prop-types";
 
 const NoteCard = ({ note }) => {
-  const body = JSON.parse(note.body); // Parsed content of the note body
-  let mouseStartPos = { x: 0, y: 0 };
-  // Parsed color settings for the note
-  const textAreaRef = useRef(null);
-  const cardRef = useRef(null);
-  const [position, setPosition] = useState(JSON.parse(note.position));
-  const [bodyContent, setBodyContent] = useState(body.content); // State for the content
+    let mouseStartPos = { x: 0, y: 0 };
+    const cardRef = useRef(null);
 
-  useEffect(() => {
-    autoGrow(textAreaRef);
-  }, [bodyContent]);
+    const { setSelectedNote } = useContext(NotesContext);
 
-  const autoGrow = (textAreaRef) => {
-    const { current } = textAreaRef;
-    if (current) {
-      current.style.height = "auto";
-      current.style.height = textAreaRef.current.scrollHeight + "px";
-    }
-  };
+    const [saving, setSaving] = useState(false);
+    const keyUpTimer = useRef(null);
 
-  const mouseDown = (e) => {
-    setZIndex(cardRef.current);
+    const [position, setPosition] = useState(JSON.parse(note.position));
+    const colors = JSON.parse(note.colors);
+    const body = bodyParser(note.body);
 
-    mouseStartPos.x = e.clientX;
-    mouseStartPos.y = e.clientY;
- 
-    document.addEventListener("mousemove", mouseMove);
-    document.addEventListener("mouseup", mouseUp);
-  };
+    const textAreaRef = useRef(null);
 
-  const mouseUp = () => {
-    document.removeEventListener("mousemove", mouseMove);
-    document.removeEventListener("mouseup", mouseUp);
-  };
+    useEffect(() => {
+        autoGrow(textAreaRef);
+        setZIndex(cardRef.current);
+    }, []);
 
-  const mouseMove = (e) => {
-    const mouseMoveDir = {
-      x: mouseStartPos.x - e.clientX,
-      y: mouseStartPos.y - e.clientY,
+    const mouseDown = (e) => {
+        if (e.target.className === "card-header") {
+            mouseStartPos.x = e.clientX;
+            mouseStartPos.y = e.clientY;
+
+            setZIndex(cardRef.current);
+
+            document.addEventListener("mousemove", mouseMove);
+            document.addEventListener("mouseup", mouseUp);
+            setSelectedNote(note);
+        }
     };
 
-    mouseStartPos.x = e.clientX;
-    mouseStartPos.y = e.clientY;
+    const mouseMove = (e) => {
+        const mouseMoveDir = {
+            x: mouseStartPos.x - e.clientX,
+            y: mouseStartPos.y - e.clientY,
+        };
 
-    setPosition({
-      x: cardRef.current.offsetLeft - mouseMoveDir.x,
-      y: cardRef.current.offsetTop - mouseMoveDir.y,
-    });
-  };
+        mouseStartPos.x = e.clientX;
+        mouseStartPos.y = e.clientY;
 
-  const handleDelete = () => {
-    setBodyContent(''); // Clear the body content
-  };
+        const newPosition = setNewOffset(cardRef.current, mouseMoveDir);
+        setPosition(newPosition);
+    };
 
-  const handleInputChange = (e) => {
-    setBodyContent(e.target.value); // Update body content as user types
-  };
+    const mouseUp = async () => {
+        document.removeEventListener("mousemove", mouseMove);
+        document.removeEventListener("mouseup", mouseUp);
 
-  return (
-    <div
-      ref={cardRef}
-      className="card"
-      style={{
-        
-        left: `${position.x}px`,
-        top: `${position.y}px`,
-        position: 'absolute',
-      }}
-    >
-      {/* Header with optional background color */}
-      <div
-        className="card-header"
-        
-        onMouseDown={mouseDown}
-      >
-        {body.title && <h3>{body.title}</h3>}
-        <button onClick={handleDelete} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-          <Trash /> {/* Trash icon as a button */}
-        </button>
-      </div>
-      <div className="card-body">
-        <textarea
-          onFocus={() => setZIndex(cardRef.current)}
-          
-          value={bodyContent} // Controlled by state
-          ref={textAreaRef}
-          onInput={() => autoGrow(textAreaRef)}
-          onChange={handleInputChange} // Sync state with user input
-        ></textarea>
+        const newPosition = setNewOffset(cardRef.current);
+        saveData("position", newPosition);
+    };
 
-        {/* Additional UI buttons */}
-        
-      </div>
-    </div>
-  );
+    const saveData = async (key, value) => {
+        const payload = { [key]: JSON.stringify(value) };
+        console.log("Save data called:", payload);
+        try {
+            await db.notes.update(note.$id, payload);
+        } catch (error) {
+            console.error(error);
+        }
+        setSaving(false);
+    };
+
+    const handleKeyUp = async () => {
+        setSaving(true);
+        if (keyUpTimer.current) {
+            clearTimeout(keyUpTimer.current);
+        }
+
+        keyUpTimer.current = setTimeout(() => {
+            console.log("Timer started");
+            saveData("body", textAreaRef.current.value);
+        }, 2000);
+    };
+
+    return (
+        <div
+            ref={cardRef}
+            className="card"
+            style={{
+                left: `${position.x}px`,
+                top: `${position.y}px`,
+                backgroundColor: colors.colorBody,
+            }}
+        >
+            <div
+                onMouseDown={mouseDown}
+                className="card-header"
+                style={{
+                    backgroundColor: colors.colorHeader,
+                }}
+            >
+                <DeleteButton noteId={note.$id} />
+
+                {saving && (
+                    <div className="card-saving">
+                        <Spinner color={colors.colorText} />
+                        <span style={{ color: colors.colorText }}>
+                            Saving...
+                        </span>
+                    </div>
+                )}
+            </div>
+            <div className="card-body">
+                <textarea
+                    onKeyUp={handleKeyUp}
+                    onFocus={() => {
+                        setZIndex(cardRef.current);
+                        setSelectedNote(note);
+                    }}
+                    onInput={() => {
+                        autoGrow(textAreaRef);
+                    }}
+                    ref={textAreaRef}
+                    style={{ color: colors.colorText }}
+                    defaultValue={body}
+                ></textarea>
+            </div>
+        </div>
+    );
 };
 
-// Prop validation using PropTypes
 NoteCard.propTypes = {
-  note: PropTypes.shape({
-    body: PropTypes.string.isRequired,
-   
-    position: PropTypes.string.isRequired,
-  }).isRequired,
+    note: PropTypes.shape({
+        $id: PropTypes.string.isRequired,
+        position: PropTypes.string.isRequired,
+        colors: PropTypes.string.isRequired,
+        body: PropTypes.string.isRequired,
+    }).isRequired,
 };
 
 export default NoteCard;
